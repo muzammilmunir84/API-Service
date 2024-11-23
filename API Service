@@ -1,0 +1,61 @@
+Step 1: Install Required Packages
+npm install @react-native-community/geolocation axios
+Step 2: Geolocation Utility
+import Geolocation from '@react-native-community/geolocation';
+export const getCurrentLocation = () =>
+  new Promise((resolve, reject) => {
+    Geolocation.getCurrentPosition(
+      position => resolve(position.coords),
+      error => reject(error),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
+  });
+
+Step 3: API Service
+import axios from 'axios';
+const API_URL = 'https://your-backend-api.com';
+
+export const findMatchingRoutes = async (driverSource, driverDestination, maxDeviation) => {
+  const response = await axios.post(`${API_URL}/match-routes`, {
+    driverSource,
+    driverDestination,
+    maxDeviation
+  });
+  return response.data;
+};
+
+Step 4: Ride Matching Component
+import React, { useState } from 'react';
+import { View, Text, Button, TextInput, Alert } from 'react-native';
+import { getCurrentLocation } from './locationService';
+import { findMatchingRoutes } from './apiService';
+
+const RideMatchingScreen = () => {
+  const [driverDestination, setDriverDestination] = useState('');
+  const [matches, setMatches] = useState([]);
+
+  const handleFindRoutes = async () => {
+    try {
+      const driverSource = await getCurrentLocation();
+      if (!driverDestination) return Alert.alert('Destination required');
+      const matchedRoutes = await findMatchingRoutes(driverSource, driverDestination, 2);
+      setMatches(matchedRoutes);
+    } catch {
+      Alert.alert('Error', 'Could not find matching routes.');
+    }
+  };
+
+  return (
+    <View style={{ padding: 20 }}>
+      <Text>Ride Matching</Text>
+      <TextInput placeholder="Enter destination" onChangeText={setDriverDestination} />
+      <Button title="Find Matching Rides" onPress={handleFindRoutes} />
+      {matches.map((match, i) => (
+        <Text key={i}>Route {i + 1}: {match.details}</Text>
+      ))}
+    </View>
+  );
+};
+
+export default RideMatchingScreen;
+
